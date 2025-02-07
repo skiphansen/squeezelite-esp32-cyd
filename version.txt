@@ -1,1 +1,1 @@
-local.500.cmake-master
+ESP32-1732S019.16.dev-0dc51206.cyd

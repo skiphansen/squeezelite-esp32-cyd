@@ -1,6 +1,5 @@
 #!/bin/bash
-
-
+#set -x
 
 echo "Build process started"
 echo "Setting up build name and build number"
@@ -30,8 +29,26 @@ else
     echo "${tag}" >version.txt
 fi
 
-echo "Copying target sdkconfig"
-cp build-scripts/${TARGET_BUILD_NAME}-sdkconfig.defaults sdkconfig
+default_sdkconfig=build-scripts/${TARGET_BUILD_NAME}-sdkconfig.defaults
+grep 'CONFIG_IDF_TARGET="esp32s3' ${default_sdkconfig} > /dev/null
+config_is_s3=$?
+grep 'CONFIG_IDF_TARGET="esp32s3' sdkconfig > /dev/null
+current_is_s3=$?
+
+if [ ${config_is_s3} -ne ${current_is_s3} ]; then
+    echo "Configured processor changed"
+    git status -s sdkconfig | grep M > /dev/null
+    if [ $? -eq 1 ]; then
+    # sdkconfig has not been modified, just blindly copy the correct config
+    # over it
+        echo "Copying target sdkconfig ${default_sdkconfig} over sdkconfig"
+        cp ${default_sdkconfig} sdkconfig
+    else
+        echo "Error: sdkconfig is dirty, aborting"
+        exit 1
+    fi
+fi
+
 echo "Building project"
 idf.py build -DDEPTH=${DEPTH} -DBUILD_NUMBER=${BUILD_NUMBER}-${DEPTH} 
 echo "Generating size report"
